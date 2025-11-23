@@ -1,0 +1,8 @@
+MONGODB_URI=mongodb+srv://srmedinillx_db_user:arartQ2R1LM5pUAD@cluster0.cwmpopc.mongodb.net/?appName=Cluster0
+MONGODB_DB=cards_db
+
+REDIS_URL=redis://host.docker.internal:6379
+
+LOG_LEVEL=info
+SERVICE_NAME=cards-service
+PORT=3000
