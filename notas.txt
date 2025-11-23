@@ -3,3 +3,5 @@ npm install mongoose dotenv
 mongoose para comunicación con mongodb y dotenv para variables de entorno.
 
 npm install redis
+
+npm install --save-dev jest supertest

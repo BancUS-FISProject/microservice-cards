@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var morgan = require('morgan');
 var logger = require('./logger');
+const pingRouter = require("./routes/ping"); //Para hacer ping a la API en los tests
 
 require('dotenv').config();
 require('./db');
@@ -16,6 +17,12 @@ var indexRouter = require('./routes/index');
 var cardsRouter = require('./routes/cards');
 
 var app = express();
+
+// /health para saber si la API está funcionando correctamente
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 
 //Middleware para requestId con log estructurado
 //Middleware = software que hace de puente entre diferentes aplicaciones, bases de datos... Permitiendo su comunicación.
@@ -57,5 +64,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/api/v1/cards', cardsRouter);
+pp.use("/api/v1", pingRouter);
 
 module.exports = app;

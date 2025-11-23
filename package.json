@@ -13,5 +13,10 @@
     "mongoose": "^8.20.0",
     "morgan": "~1.9.1",
     "redis": "^5.10.0"
+  },
+
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "jest --runInBand"
   }
 }
