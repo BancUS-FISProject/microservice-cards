@@ -1,19 +1,16 @@
 var express = require('express');
-const {randomUUID} =require('crypto');
+const { randomUUID } = require('crypto');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var morgan = require('morgan');
 var logger = require('./logger');
-const { initRedis } = require('./redisClient');
 
 require('dotenv').config();
 require('./db');
 
-//Inicializamos Redis una única vez
-initRedis().catch((err) => {
-  //NO tiramos el servicio si falla Redis, pero se avisa.
-  logger.error('No se ha podido conectar a Redis', { error: err.message });
-});
+// Inicializamos Redis al arrancar la app
+const { initRedis } = require('./redisClient');
+initRedis();
 
 var indexRouter = require('./routes/index');
 var cardsRouter = require('./routes/cards');
@@ -50,8 +47,6 @@ app.use((req, res, next) => { // Se ejecuta para todas las peticiones
 
   next(); //pasar al siguiente middleware
 });
-
-
 
 // log con Morgan
 app.use(morgan('dev'));
