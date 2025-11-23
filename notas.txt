@@ -1,0 +1,5 @@
+npx express-generator --no-view --git
+npm install mongoose dotenv
+mongoose para comunicación con mongodb y dotenv para variables de entorno.
+
+npm install redis
