@@ -270,7 +270,7 @@ describe("Cards API - tests de integración de todos los endpoints", () => {
     it("Responder 200 OK si el servicio y la caché están OK", async () => {
       const res = await request(app).get("/ping/cache");
 
-      expect([200, 204]).toHaveProperty("ok",true);
+      expect(res.body).toHaveProperty("ok",true);
 
     });
   });
