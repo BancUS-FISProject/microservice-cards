@@ -25,7 +25,7 @@ jobs:
     env:
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
       MONGODB_DB: ${{ secrets.MONGODB_DB }}
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://localhost:6379
 
     strategy:
       matrix:
