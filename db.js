@@ -6,10 +6,10 @@ const logger = require('./logger');
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB || 'cards_db'; //Si no tenemos el nombre de la base de datos, la añadimos nosotros
 
-if (!uri) {//Si no tenemos definida la uri, lanzamos error y cerramos el proceso
-  console.error('MONGODB_URI no está definida en .env');
-  process.exit(1);
-}
+// if (!uri) {//Si no tenemos definida la uri, lanzamos error y cerramos el proceso
+//   console.error('MONGODB_URI no está definida en .env');
+//   process.exit(1);
+// }
 
 mongoose
   .connect(uri, { dbName })//Nos conectamos a la base de datos de tarjetas

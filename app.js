@@ -23,6 +23,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+app.get('/ping/cache', async (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 
 //Middleware para requestId con log estructurado
 //Middleware = software que hace de puente entre diferentes aplicaciones, bases de datos... Permitiendo su comunicación.
@@ -64,6 +68,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/api/v1/cards', cardsRouter);
-pp.use("/api/v1", pingRouter);
+app.use("/api/v1", pingRouter);
 
 module.exports = app;
