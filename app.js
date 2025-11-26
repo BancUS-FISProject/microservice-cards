@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var morgan = require('morgan');
 var logger = require('./logger');
 const pingRouter = require("./routes/ping"); //Para hacer ping a la API en los tests
+const swaggerUi = require("swagger-ui-express");//Para swagger.
+const swaggerJsdoc = require("swagger-jsdoc");
 
 require('dotenv').config();
 require('./db');
@@ -27,6 +29,31 @@ app.get('/ping/cache', async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
+//Open API Specification
+const swaggerDefinition = {
+  openapi: "3.0.0", //versión 3.0.0
+  info: {
+    title: "Cards Service API",
+    version: "1.0.0",
+    description: "API para la gestión de tarjetas (cards-service)",
+  },
+  servers: [
+    {
+      url: "/api/v1",
+      description: "API v1",
+    },
+  ],
+};
+
+//Opciones swagger, se indica donde están las anotaciones.
+const swaggerOptions = {
+  swaggerDefinition,
+  apis: ["./routes/cards.js"], 
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+// en /api-docs se visualizará la la especificación OpenAPI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //Middleware para requestId con log estructurado
 //Middleware = software que hace de puente entre diferentes aplicaciones, bases de datos... Permitiendo su comunicación.
