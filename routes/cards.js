@@ -8,7 +8,6 @@
 // -Dos tarjetas no pueden tener el mismo PAN.
 // -El PAN identifica a la tarjeta
 
-
 // API
 // -Listar todas las tarjetas
 // -Listar todas las tarjetas de un usuario
@@ -19,7 +18,6 @@
 
 // Para hacer llamadas en la API con espacios y tildes tenemos dos opciones: traducir directamente o añadir guiones en lugar de espacios y no permitir usas tildes.
 // Empezamos con la traducción directa
-
 
 //Formato de la caché
 // -Listar todas las tarjetas --> cards:all
@@ -37,6 +35,95 @@ const Card = require('../models/Card');
 const logger = require('../logger');
 const cache = require('../cache');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Card:
+ *       type: object
+ *       description: Tarjeta almacenada en la base de datos
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Identificador global de MongoDB
+ *           example: "67401234abcd5678ef901234"
+ *         card_id:
+ *           type: string
+ *           description: Identificador interno de la tarjeta para un mismo usuario (1, 2, 3...)
+ *           example: "1"
+ *         cardholderName:
+ *           type: string
+ *           description: Nombre del titular de la tarjeta
+ *           example: "UserTest"
+ *         PAN:
+ *           type: string
+ *           description: Número de tarjeta (Primary Account Number). Único por tarjeta.
+ *           example: "4123456789012345"
+ *         expirationDate:
+ *           type: string
+ *           description: Fecha de expiración en formato MM/YY
+ *           example: "11/32"
+ *         CVC:
+ *           type: string
+ *           description: Código de seguridad de 3 dígitos
+ *           example: "123"
+ *         cardFreeze:
+ *           type: string
+ *           description: Estado de la tarjeta
+ *           enum: [Active, Frozen]
+ *           example: "Active"
+ *       required:
+ *         - cardholderName
+ *         - PAN
+ *         - expirationDate
+ *         - CVC
+ *         - cardFreeze
+ *
+ *     CardCreateRequest:
+ *       type: object
+ *       description: Petición para crear una tarjeta
+ *       properties:
+ *         cardholderName:
+ *           type: string
+ *           description: Nombre del titular de la tarjeta
+ *           example: "UserTest"
+ *       required:
+ *         - cardholderName
+ *
+ *     CardUpdateRequest:
+ *       type: object
+ *       description: Campos que se pueden actualizar en una tarjeta
+ *       properties:
+ *         card_id:
+ *           type: string
+ *           example: "2"
+ *         cardholderName:
+ *           type: string
+ *           example: "UserTest Modificado"
+ *         PAN:
+ *           type: string
+ *           example: "4123456789019999"
+ *         expirationDate:
+ *           type: string
+ *           example: "05/30"
+ *         CVC:
+ *           type: string
+ *           example: "999"
+ *         cardFreeze:
+ *           type: string
+ *           description: Estado de la tarjeta
+ *           enum: [active, frozen, Active, Frozen]
+ *           example: "frozen"
+ *
+ *     ErrorResponse:
+ *       type: object
+ *       description: Respuesta de error genérica
+ *       properties:
+ *         error:
+ *           type: string
+ *           example: "Mensaje de error"
+ */
+
 // Helper para normalizar el estado de la tarjeta. Lo usamos por si obtenemos un valor que no es válido.
 function normalizarFreezeStatus(status) {
   if (!status) return undefined;
@@ -50,6 +137,29 @@ function normalizarFreezeStatus(status) {
 
 //Listar TODAS las tarjetas
 //GET /api/v1/cards
+/**
+ * @swagger
+ * /cards:
+ *   get:
+ *     summary: Listar todas las tarjetas
+ *     tags:
+ *       - Cards
+ *     responses:
+ *       200:
+ *         description: Lista de todas las tarjetas almacenadas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Card'
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 router.get('/', async (req, res) => {
   const cacheKey  = 'cards:all';
   try{
@@ -81,6 +191,38 @@ router.get('/', async (req, res) => {
 
 //Listar todas las tarjetas de un usuario por nombre
 //GET /api/v1/cards/holder/:cardholderName
+/**
+ * @swagger
+ * /cards/holder/{cardholderName}:
+ *   get:
+ *     summary: Listar todas las tarjetas de un usuario por nombre
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: cardholderName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre del titular de la tarjeta
+ *     responses:
+ *       200:
+ *         description: Lista de tarjetas del usuario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Card'
+ *       404:
+ *         description: El usuario no tiene tarjetas registradas
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 router.get('/holder/:cardholderName', async (req, res) => {
   const cardholderName = req.params.cardholderName;
 
@@ -128,6 +270,36 @@ router.get('/holder/:cardholderName', async (req, res) => {
 
 //Listar todas las tarjetas de un usuario por su id
 //GET /api/v1/cards/:id
+/**
+ * @swagger
+ * /cards/{id}:
+ *   get:
+ *     summary: Obtener una tarjeta por su id
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Identificador global de MongoDB de la tarjeta
+ *     responses:
+ *       200:
+ *         description: Tarjeta encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       404:
+ *         description: No existe una tarjeta con ese id
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 router.get('/:id', async (req, res) => {
   //Tomamos los parámetros de la URL
   const id = req.params.id;
@@ -168,7 +340,7 @@ router.get('/:id', async (req, res) => {
 });
 
 
-//Método POST: rear una tarjeta
+//Método POST: crear una tarjeta
 
 //Helpers
 //Genera un PAN de 16 dígitos tipo "4XXXXXXXXXXXXXXX" y comprueba que no exista
@@ -205,6 +377,39 @@ function generarFechaExpiracion() {
 // POST /api/v1/cards
 // POST /api/v1/cards -> crear tarjeta
 // Solo necesita cardholderName; el resto se genera automáticamente
+/**
+ * @swagger
+ * /cards:
+ *   post:
+ *     summary: Crear una tarjeta para un usuario
+ *     tags:
+ *       - Cards
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CardCreateRequest'
+ *     responses:
+ *       201:
+ *         description: Tarjeta creada con éxito
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       400:
+ *         description: Petición incorrecta o PAN duplicado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 router.post('/', async (req, res) => {
   const { cardholderName } = req.body;
   const requestId = req.requestId; //Tomamos el id de la petición para el logger
@@ -286,12 +491,49 @@ router.post('/', async (req, res) => {
 
 // Ejemplo de log {"time":"2025-11-19T22:10:03.421Z","level":"info","service":"cards-service","env":"dev","msg":"Card created","requestId":"9b4c4a6c-96bb-4de3-b664-4c9a196dc0ab","cardholderName":"PruebaHost","card_id":"2","id":"67401234abcd5678ef901234","card":{"PAN":"**** **** **** 4444"}}
 
-  
-
 //Método PUT.
 
 //Bloquear o desbloquear una tarjeta por id
 // PUT /api/v1/cards/status/:id/:cardFreeze
+/**
+ * @swagger
+ * /cards/status/{id}/{cardFreeze}:
+ *   put:
+ *     summary: Bloquear o desbloquear una tarjeta por id
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Id de la tarjeta (MongoDB)
+ *       - in: path
+ *         name: cardFreeze
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [active, frozen]
+ *         description: Nuevo estado de la tarjeta
+ *     responses:
+ *       200:
+ *         description: Estado de la tarjeta actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       400:
+ *         description: Estado inválido (distinto de active/frozen)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tarjeta no encontrada
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.put('/status/:id/:cardFreeze', async (req, res) => {
   logger.info('PUT /api/v1/cards/status/', {req: req.params.id});
   try {
@@ -335,6 +577,50 @@ router.put('/status/:id/:cardFreeze', async (req, res) => {
 
 // Actualizar tarjeta por nombre + card_id
 // PUT /api/v1/cards/user/:cardholderName/:cardId
+/**
+ * @swagger
+ * /cards/{cardholderName}/{id}:
+ *   put:
+ *     summary: Actualizar una tarjeta por nombre del titular e id
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: cardholderName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre del titular de la tarjeta
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Id de la tarjeta (MongoDB)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CardUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Tarjeta actualizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       400:
+ *         description: Datos inválidos o estado cardFreeze no válido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: No existe una tarjeta con ese id y cardholderName
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.put('/:cardholderName/:id', async (req, res) => {
   logger.info('PUT /api/v1/cards/', {cardholderName:req.params.cardholderName, id:req.params.id});
   try {
@@ -390,6 +676,44 @@ router.put('/:cardholderName/:id', async (req, res) => {
 
 // Actualizar tarjeta por _id (equivalente al id global de antes)
 // PUT /api/v1/cards/:id
+/**
+ * @swagger
+ * /cards/{id}:
+ *   put:
+ *     summary: Actualizar una tarjeta por id
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Id de la tarjeta (MongoDB)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CardUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Tarjeta actualizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       400:
+ *         description: Datos inválidos o estado cardFreeze no válido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tarjeta no encontrada
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.put('/:id', async (req, res) => {
   logger.info('PUT /api/v1/cards/', {req:req.params.id});
   try {
@@ -442,6 +766,38 @@ router.put('/:id', async (req, res) => {
 
 //Borrar la tarjeta de un usuario por nombre + card_id
 //DELETE /api/v1/cards/:cardholderName/:cardId
+/**
+ * @swagger
+ * /cards/{cardholderName}/{id}:
+ *   delete:
+ *     summary: Borrar la tarjeta de un usuario por nombre e id
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: cardholderName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre del titular de la tarjeta
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Id de la tarjeta (MongoDB)
+ *     responses:
+ *       200:
+ *         description: Tarjeta eliminada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       404:
+ *         description: No se ha encontrado ninguna tarjeta con ese titular e id
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.delete('/:cardholderName/:id', async (req, res) => {
   logger.info(
     'DELETE /api/v1/cards/',{
@@ -484,6 +840,32 @@ router.delete('/:cardholderName/:id', async (req, res) => {
 
 //Borrar tarjeta por _id 
 //DELETE /api/v1/cards/:id
+/**
+ * @swagger
+ * /cards/{id}:
+ *   delete:
+ *     summary: Borrar una tarjeta por id
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Id de la tarjeta (MongoDB)
+ *     responses:
+ *       200:
+ *         description: Tarjeta eliminada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       404:
+ *         description: Tarjeta no encontrada
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.delete('/:id', async (req, res) => {
   logger.info('DELETE /api/v1/cards/',{req:req.params.id});
   try {
