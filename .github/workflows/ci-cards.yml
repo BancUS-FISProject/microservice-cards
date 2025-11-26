@@ -23,8 +23,8 @@ jobs:
           --health-retries 5
 
     env:
-      MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING }}
-      MONGO_DATABASE_NAME: ${{ secrets.MONGO_DATABASE_NAME }}
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      MONGODB_DB: ${{ secrets.MONGODB_DB }}
       REDIS_URL: redis://redis:6379
 
     strategy:
@@ -70,8 +70,8 @@ jobs:
           context: .
           file: ./Dockerfile
           build-args: |
-            MONGO_CONNECTION_STRING=${{ secrets.MONGO_CONNECTION_STRING }}
-            MONGO_DATABASE_NAME=${{ secrets.MONGO_DATABASE_NAME }}
+            MONGODB_URI=${{ secrets.MONGODB_URI }}
+            MONGODB_DB=${{ secrets.MONGODB_DB }}
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
