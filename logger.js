@@ -2,7 +2,6 @@
 
 /*
 Vamos a crear un log con este formato.
-
 {
   "time": "2025-11-19T22:05:13.421Z",
   "level": "info",

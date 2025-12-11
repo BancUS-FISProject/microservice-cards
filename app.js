@@ -7,6 +7,7 @@ var logger = require('./logger');
 const pingRouter = require("./routes/ping"); //Para hacer ping a la API en los tests
 const swaggerUi = require("swagger-ui-express");//Para swagger.
 const swaggerJsdoc = require("swagger-jsdoc");
+var cors = require('cors'); //Para poder ver el frontend y conectarlo con la API
 
 require('dotenv').config();
 require('./db');
@@ -85,6 +86,18 @@ app.use((req, res, next) => { // Se ejecuta para todas las peticiones
 
   next(); //pasar al siguiente middleware
 });
+
+//Definimos en cors donde está el frontend y lo que puede hacer
+app.use(
+  cors({
+    origin: 'http://localhost:5173',       
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+//Para responder correctamente a cualquier options
+app.options('*', cors());
 
 // log con Morgan
 app.use(morgan('dev'));
