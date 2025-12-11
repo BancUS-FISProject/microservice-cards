@@ -836,6 +836,8 @@ router.delete('/:cardholderName/:id', async (req, res) => {
   }
 });
 
+//BORRAR TARJETA POR PAN
+//HACER
 
 
 //Borrar tarjeta por _id 
