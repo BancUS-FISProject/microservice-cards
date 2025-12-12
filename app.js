@@ -26,11 +26,12 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+// Endpoint simple para probar la caché desde el frontend o tests
 app.get('/ping/cache', async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-//Open API Specification
+// Open API Specification
 const swaggerDefinition = {
   openapi: "3.0.0", //versión 3.0.0
   info: {
@@ -40,7 +41,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: "/api/v1",
+      url: "/v1",          // <-- coherente con app.use('/v1/...', ...)
       description: "API v1",
     },
   ],
@@ -106,8 +107,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+app.use('/v1/cards', cardsRouter); //Primero entra aquí
+app.use("/v1", pingRouter);
 app.use('/', indexRouter);
-app.use('/api/v1/cards', cardsRouter);
-app.use("/api/v1", pingRouter);
 
 module.exports = app;

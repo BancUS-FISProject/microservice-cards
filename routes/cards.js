@@ -136,7 +136,7 @@ function normalizarFreezeStatus(status) {
 //Método GET: Listar tarjetas
 
 //Listar TODAS las tarjetas
-//GET /api/v1/cards
+//GET /v1/cards
 /**
  * @swagger
  * /cards:
@@ -190,7 +190,7 @@ router.get('/', async (req, res) => {
 });
 
 //Listar todas las tarjetas de un usuario por nombre
-//GET /api/v1/cards/holder/:cardholderName
+//GET /v1/cards/holder/:cardholderName
 /**
  * @swagger
  * /cards/holder/{cardholderName}:
@@ -269,7 +269,7 @@ router.get('/holder/:cardholderName', async (req, res) => {
 });
 
 //Listar todas las tarjetas de un usuario por su id
-//GET /api/v1/cards/:id
+//GET /v1/cards/:id
 /**
  * @swagger
  * /cards/{id}:
@@ -374,8 +374,8 @@ function generarFechaExpiracion() {
 }
 
 // Crear una tarjeta (equivalente al push del array)
-// POST /api/v1/cards
-// POST /api/v1/cards -> crear tarjeta
+// POST /v1/cards
+// POST /v1/cards -> crear tarjeta
 // Solo necesita cardholderName; el resto se genera automáticamente
 /**
  * @swagger
@@ -493,8 +493,9 @@ router.post('/', async (req, res) => {
 
 //Método PUT.
 
+
 //Bloquear o desbloquear una tarjeta por id
-// PUT /api/v1/cards/status/:id/:cardFreeze
+// PUT /v1/cards/status/:id/:cardFreeze
 /**
  * @swagger
  * /cards/status/{id}/{cardFreeze}:
@@ -535,7 +536,7 @@ router.post('/', async (req, res) => {
  *         description: Error interno del servidor
  */
 router.put('/status/:id/:cardFreeze', async (req, res) => {
-  logger.info('PUT /api/v1/cards/status/', {req: req.params.id});
+  logger.info('PUT /v1/cards/status/', {req: req.params.id});
   try {
     const id = req.params.id;
     const status = normalizarFreezeStatus(req.params.cardFreeze); //Nos aseguramos de haber obtenido un valor correcto
@@ -576,7 +577,7 @@ router.put('/status/:id/:cardFreeze', async (req, res) => {
 
 
 // Actualizar tarjeta por nombre + card_id
-// PUT /api/v1/cards/user/:cardholderName/:cardId
+// PUT /v1/cards/user/:cardholderName/:cardId
 /**
  * @swagger
  * /cards/{cardholderName}/{id}:
@@ -622,7 +623,7 @@ router.put('/status/:id/:cardFreeze', async (req, res) => {
  *         description: Error interno del servidor
  */
 router.put('/:cardholderName/:id', async (req, res) => {
-  logger.info('PUT /api/v1/cards/', {cardholderName:req.params.cardholderName, id:req.params.id});
+  logger.info('PUT /v1/cards/', {cardholderName:req.params.cardholderName, id:req.params.id});
   try {
     const cardholderName = req.params.cardholderName;
     const id = req.params.id; 
@@ -675,7 +676,7 @@ router.put('/:cardholderName/:id', async (req, res) => {
 
 
 // Actualizar tarjeta por _id (equivalente al id global de antes)
-// PUT /api/v1/cards/:id
+// PUT /v1/cards/:id
 /**
  * @swagger
  * /cards/{id}:
@@ -715,7 +716,7 @@ router.put('/:cardholderName/:id', async (req, res) => {
  *         description: Error interno del servidor
  */
 router.put('/:id', async (req, res) => {
-  logger.info('PUT /api/v1/cards/', {req:req.params.id});
+  logger.info('PUT /v1/cards/', {req:req.params.id});
   try {
     const id = req.params.id;
     const updateData = { ...req.body };
@@ -762,10 +763,76 @@ router.put('/:id', async (req, res) => {
 });
 
 
+//BORRAR TARJETA POR PAN
+//HACER
+//DELETE /v1/cards/pan/:PAN
+/**
+ * @swagger
+ * /cards/pan/{PAN}:
+ *   delete:
+ *     summary: Borrar una tarjeta por PAN
+ *     tags:
+ *       - Cards
+ *     parameters:
+ *       - in: path
+ *         name: PAN
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Número de tarjeta (PAN)
+ *     responses:
+ *       200:
+ *         description: Tarjeta eliminada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Card'
+ *       404:
+ *         description: No existe una tarjeta con ese PAN
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.delete('/pan/:PAN', async (req, res) => {
+  logger.info('DELETE /v1/cards/pan', { PAN: req.params.PAN });
+
+  try {
+    const PAN = req.params.PAN;
+
+    // Borramos la tarjeta única identificada por este PAN
+    const deleted = await Card.findOneAndDelete({ PAN });
+
+    if (!deleted) {
+      return res.sendStatus(404);
+    }
+
+    // Actualizamos caché igual que en el resto de deletes
+    try {
+      await cache.deleteByPattern(`cards:id:${deleted._id}`);
+      await cache.deleteByPattern('cards:all');
+      await cache.deleteByPattern(`cards:holder:${deleted.cardholderName}`);
+    } catch (cacheErr) {
+      logger.error('Error actualizando caché en DELETE /cards/pan/:PAN', {
+        error: cacheErr.message,
+        PAN,
+      });
+    }
+
+    res.json(deleted);
+  } catch (err) {
+    logger.error('Error en DELETE /cards/pan/:PAN:', { err: err });
+    res.sendStatus(500);
+  }
+});
+
+
 //Método DELETE: borrado de tarjetas por id y por nombre + id
 
 //Borrar la tarjeta de un usuario por nombre + card_id
-//DELETE /api/v1/cards/:cardholderName/:cardId
+//DELETE /v1/cards/:cardholderName/:cardId
 /**
  * @swagger
  * /cards/{cardholderName}/{id}:
@@ -800,7 +867,7 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:cardholderName/:id', async (req, res) => {
   logger.info(
-    'DELETE /api/v1/cards/',{
+    'DELETE /v1/cards/',{
       cardholderName:req.params.cardholderName,
       id:req.params.id}
   );
@@ -836,12 +903,10 @@ router.delete('/:cardholderName/:id', async (req, res) => {
   }
 });
 
-//BORRAR TARJETA POR PAN
-//HACER
 
 
 //Borrar tarjeta por _id 
-//DELETE /api/v1/cards/:id
+//DELETE /v1/cards/:id
 /**
  * @swagger
  * /cards/{id}:
@@ -869,7 +934,7 @@ router.delete('/:cardholderName/:id', async (req, res) => {
  *         description: Error interno del servidor
  */
 router.delete('/:id', async (req, res) => {
-  logger.info('DELETE /api/v1/cards/',{req:req.params.id});
+  logger.info('DELETE /v1/cards/',{req:req.params.id});
   try {
     const id = req.params.id;
     const deleted = await Card.findByIdAndDelete(id);
