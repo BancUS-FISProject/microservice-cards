@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "test": "jest --runInBand --forceExit"
+    "test": "jest --runInBand --forceExit",
+    "test:internal": "jest tests/app.test.js tests/cards.api.test.js --runInBand --forceExit",
+    "test:external": "jest tests/cards.external.test.js --runInBand --forceExit"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
