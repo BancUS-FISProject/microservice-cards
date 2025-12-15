@@ -26,6 +26,7 @@ jobs:
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
       MONGODB_DB: ${{ secrets.MONGODB_DB }}
       REDIS_URL: redis://localhost:6379
+      CARDS_BASE_URL: http://127.0.0.1:3000
 
     strategy:
       matrix:
@@ -44,8 +45,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Start API and run tests (internal + external)
+        run: |
+          npm start &
+          SERVER_PID=$!
+          ATTEMPTS=0
+          until curl -sSf http://127.0.0.1:3000/health > /dev/null || [ $ATTEMPTS -ge 30 ]; do
+            ATTEMPTS=$((ATTEMPTS+1))
+            sleep 2
+          done
+          if ! curl -sSf http://127.0.0.1:3000/health > /dev/null; then
+            kill $SERVER_PID || true
+            exit 1
+          fi
+          npm test
+          kill $SERVER_PID || true
 
   build-and-push:
     runs-on: ubuntu-latest
