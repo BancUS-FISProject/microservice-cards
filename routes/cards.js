@@ -494,22 +494,22 @@ router.post('/', async (req, res) => {
 //Método PUT.
 
 
-//Bloquear o desbloquear una tarjeta por id
-// PUT /v1/cards/status/:id/:cardFreeze
+//Bloquear o desbloquear una tarjeta por PAN
+// PUT /v1/cards/status/:pan/:cardFreeze
 /**
  * @swagger
- * /cards/status/{id}/{cardFreeze}:
+ * /cards/status/{pan}/{cardFreeze}:
  *   put:
- *     summary: Bloquear o desbloquear una tarjeta por id
+ *     summary: Bloquear o desbloquear una tarjeta por PAN
  *     tags:
  *       - Cards
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: pan
  *         required: true
  *         schema:
  *           type: string
- *         description: Id de la tarjeta (MongoDB)
+ *         description: PAN de la tarjeta
  *       - in: path
  *         name: cardFreeze
  *         required: true
@@ -535,42 +535,45 @@ router.post('/', async (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-router.put('/status/:id/:cardFreeze', async (req, res) => {
-  logger.info('PUT /v1/cards/status/', {req: req.params.id});
-  try {
-    const id = req.params.id;
-    const status = normalizarFreezeStatus(req.params.cardFreeze); //Nos aseguramos de haber obtenido un valor correcto
+router.put('/status/:pan/:cardFreeze', async (req, res) => {
+  logger.info('PUT /v1/cards/status/', { req: req.params.pan });
 
-    if (!status) { //Si el valor no es correcto, devolvemos un error
-      return res.status(400).json({error:'Status debe ser "active" o "frozen"'});
+  try {
+    const pan = req.params.pan;
+    const status = normalizarFreezeStatus(req.params.cardFreeze); //Nos aseguramos de que el valor recibido es correcto
+
+    if (!status) { //Si el valor no es correcto, lanzamos un error
+      return res.status(400).json({ error: 'Status debe ser "active" o "frozen"' });
     }
 
-    const updated = await Card.findByIdAndUpdate(
-      id, //Encontramos por ID
-      {$set: { cardFreeze: status }},//Actualizamos su valor
-      {new: true}
+    // Buscar y actualizar por PAN 
+    const updated = await Card.findOneAndUpdate(
+      { PAN:pan }, //encontramos por pan
+      { $set: { cardFreeze: status } }, //Actualizarmos por valor
+      { new: true }
     );
 
-    if (!updated) { //Si no se puede actualizar el valor, devolvemos error
+    if (!updated) { //Error al no actualizar el valor
       return res.sendStatus(404);
     }
-    //Hacemos lo mismo que en POST, actualizamos la tarjeta...
-    try {
-      await cache.setJSON(`cards:id:${id}`, updated, 60);
 
-      //Borramos listas desactualizadas
+    try {
+      //Guardamos en caché
+      await cache.setJSON(`cards:pan:${pan}`, updated, 60);
+
+      //Borramos las caché
       await cache.deleteByPattern('cards:all');
       await cache.deleteByPattern(`cards:holder:${updated.cardholderName}`);
     } catch (cacheErr) {
       logger.error('Error actualizando caché en PUT /cards/status', {
         error: cacheErr.message,
-        id,
+        pan,
       });
     }
 
     res.json(updated);
   } catch (err) {
-    logger.error('Error en PUT /cards/status:', {err:err});
+    logger.error('Error en PUT /cards/status:', { err });
     res.sendStatus(500);
   }
 });
