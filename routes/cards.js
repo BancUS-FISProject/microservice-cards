@@ -535,6 +535,8 @@ router.post('/', async (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
+
+
 router.put('/status/:pan/:cardFreeze', async (req, res) => {
   logger.info('PUT /v1/cards/status/', { req: req.params.pan });
 
