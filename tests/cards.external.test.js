@@ -97,23 +97,23 @@ describe('Cards API – tests externos (servicio real)', () => {
     expect(body.some(c => c.cardholderName === holderName)).toBe(true);
   });
 
-  it('PUT /v1/cards/status/:id/frozen cambia el estado a Frozen', async () => {
+  it('PUT /v1/cards/status/:PAN/frozen cambia el estado a Frozen', async () => {
+  const res = await http(
+    'PUT',
+    `${API_PREFIX}/status/${createdPAN}/frozen`
+  );
+
+  if (skipIfNoApi()) return;
+
+  expect(res.status).toBe(200);
+  const body = await res.json();
+  expect(body.cardFreeze).toBe('Frozen');
+});
+
+  it('PUT /v1/cards/status/:PAN/active vuelve a poner la tarjeta en Active', async () => {
     const res = await http(
       'PUT',
-      `${API_PREFIX}/status/${createdCardId}/frozen`
-    );
-
-    if (skipIfNoApi()) return;
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.cardFreeze).toBe('Frozen');
-  });
-
-  it('PUT /v1/cards/status/:id/active vuelve a poner la tarjeta en Active', async () => {
-    const res = await http(
-      'PUT',
-      `${API_PREFIX}/status/${createdCardId}/active`
+      `${API_PREFIX}/status/${createdPAN}/active`
     );
 
     if (skipIfNoApi()) return;
@@ -121,8 +121,7 @@ describe('Cards API – tests externos (servicio real)', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.cardFreeze).toBe('Active');
-  });
-
+});
   it('DELETE /v1/cards/pan/:PAN borra la tarjeta por PAN', async () => {
     const res = await http('DELETE', `${API_PREFIX}/pan/${createdPAN}`);
 
