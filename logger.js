@@ -1,5 +1,3 @@
-// logger.js
-
 /*
 Vamos a crear un log con este formato.
 {
