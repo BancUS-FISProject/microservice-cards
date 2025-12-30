@@ -1,4 +1,3 @@
-// redisClient.js
 const { createClient } = require('redis');
 const logger = require('./logger');
 

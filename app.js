@@ -41,7 +41,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: "/v1",          // <-- coherente con app.use('/v1/...', ...)
+      url: "/v1",          
       description: "API v1",
     },
   ],
