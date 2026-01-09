@@ -18,8 +18,12 @@ El proyecto se presenta con la arquitectura base y los microservicios totalmente
 * **Microservicio Accounts:** Funcionalidad completa CRUD, gestión de estados (bloqueo/desbloqueo) y endpoints dependientes de otros microservicios (Cards/Currencies).
 * **Microservicio Currencies:** Actúa como adaptador/wrapper consumiendo la API externa para realizar conversiones reales, además de controlar el consumo de la API externa.
 * **Mircroservcio Cards:** Funcionalidad completa CRUD, gestión de estados (active/frozen)
+* **Mircroservcio Transfers:** Funcionalidad completa, gestiona las transferencias realizadas en la aplicación, ofreciendo recursos a otros microservicios como el de pagos programados y al mismo tiempo dependiente de otros como el microservicio de cuentas. Se permiten revertir las transferencias y se enfoca en la trazabilidad de operaciones independientemente de su estado.
 * **Microservicio User Auth:** Alta/edición de usuarios, login con CAPTCHA, emisión de JWT con revocación (lista negra) y validación centralizada de tokens para el resto de microservicios.
 * **Microservicio Anti-fraud:** Reglas de detección de fraude, creación/gestión de alertas y bloqueo proactivo de cuentas mediante circuit breaker hacia Accounts.
+* **Microservicio Scheduled Payments:** Funcionalidad completa, realiza transferencias en momentos programados utilizando una sincronización por NTP y algunas limitaciones tipo Rate Limit para asegurar un correcto funcionamiento.
+* **Microservicio Notifications:** Funcionalidad completa, se encarga de informar a los usuarios sobre distintos eventos relevantes del sistema utilizando SendGrid enviando mails a los distintos usuarios.
+* **Microservicio Bank Statements:** Gestión completa de estados de cuenta bancarios con generación automática mensual mediante cron job, generación de estado de cuneta del mes actual consumiendo transacciones externas; muestra al cliente un balance de sus gastos.
 
 ### Características implementadas
 
@@ -33,7 +37,7 @@ El proyecto se presenta con la arquitectura base y los microservicios totalmente
   * **Debe tener persistencia utilizando MongoDB u otra base de datos no SQL.** --> Uso de [MongoDB Atlas](https://www.mongodb.com/es/lp/cloud/atlas/try4?utm_source=google&utm_campaign=search_gs_pl_evergreen_atlas_core_prosp-brand_gic-null_emea-es_ps-all_desktop_es-es_lead&utm_term=mongo&utm_medium=cpc_paid_search&utm_ad=p&utm_ad_campaign_id=20378068766&adgroup=154980291241&cq_cmp=20378068766&gad_source=1&gad_campaignid=20378068766&gbraid=0AAAAADQ14003vVzNv2F2yoQf9TkSi2dB4&gclid=Cj0KCQiA6sjKBhCSARIsAJvYcpOkznc7sPIf-SOd9ZHtvnsz4J5YW0aLHTNyrmRCJkFNWmpFl-ndkrwaAkwNEALw_wcB)
   * **Deben validarse los datos antes de almacenarlos en la base de datos (por ejemplo, haciendo uso  de mongoose).**  --> Uso de pydantic en [Microservicio Accounts](https://github.com/BancUS-FISProject/microservice-accounts/tree/master/src/accounts/models), Uso de modelo en [microservice cards ](https://github.com/BancUS-FISProject/microservice-cards/blob/master/models/Card.js)
   * **Debe haber definida una imagen Docker del proyecto**  --> [Microservicio Accounts](https://hub.docker.com/repository/docker/alvvigsua/microservice-accounts/general), [Microservice Currencies](https://hub.docker.com/repository/docker/alvvigsua/microservice-currencies/general), [Microservicio cards](https://hub.docker.com/repository/docker/pabmedmej/microservice-cards/general) 
-  * **Gestión del código fuente: El código debe estar subido a un repositorio de Github siguiendo Github Flow** --> [Proyecto](https://github.com/BancUS-FISProject), [Front-end](https://github.com/BancUS-FISProject/BancUS-frontend), [Microservicio Accounts](https://github.com/BancUS-FISProject/microservice-accounts), [Microservicio Currencies](https://github.com/BancUS-FISProject/microservice-currencies), [Microservicio Cards](https://github.com/BancUS-FISProject/microservice-cards), [Microservicio User Auth](https://github.com/BancUS-FISProject/microservice-user-auth), [Microservicio Anti-Fraud](https://github.com/BancUS-FISProject/microservice-anti-fraud), [API Gateway](https://github.com/BancUS-FISProject/api-gateway)
+  * **Gestión del código fuente: El código debe estar subido a un repositorio de Github siguiendo Github Flow** --> [Proyecto](https://github.com/BancUS-FISProject), [Front-end](https://github.com/BancUS-FISProject/BancUS-frontend), [Microservicio Accounts](https://github.com/BancUS-FISProject/microservice-accounts), [Microservicio Currencies](https://github.com/BancUS-FISProject/microservice-currencies), [Microservicio Cards](https://github.com/BancUS-FISProject/microservice-cards), [Microservicio Transfers](https://github.com/BancUS-FISProject/microservice-transfers), [Microservicio User Auth](https://github.com/BancUS-FISProject/microservice-user-auth), [Microservicio Anti-Fraud](https://github.com/BancUS-FISProject/microservice-anti-fraud), [API Gateway](https://github.com/BancUS-FISProject/api-gateway)
   * **Integración continua: El código debe compilarse, probarse y generar la imagen de Docker automáticamente usando GitHub Actions u otro sistema de integración continua en cada commit** --> Uso de Actions [Micorservicio Cards](https://github.com/BancUS-FISProject/microservice-cards/blob/master/.github/workflows/ci-cards.yml), [Microservicio Accounts](https://github.com/BancUS-FISProject/microservice-accounts/blob/master/.github/workflows/cicd-test-docker-pipeline.yml)
   * **Debe haber pruebas de componente implementadas en Javascript para el código del backend utilizando Jest o similar. Como norma general debe haber tests para todas las funciones del API no triviales de la  aplicación. Probando tanto escenarios positivos como negativos. Las pruebas deben ser tanto in-process como out-of-process**. --> Uso de Jest. Tests internos [Microservicio Cards](https://github.com/BancUS-FISProject/microservice-cards/blob/master/tests/cards.api.test.js) [Microservicio Accounts](https://github.com/BancUS-FISProject/microservice-accounts/blob/master/tests/test_database.py), Tests externos [Microservicio Cards](https://github.com/BancUS-FISProject/microservice-cards/blob/master/tests/cards.external.test.js), [Microservicio Accounts](https://github.com/BancUS-FISProject/microservice-accounts/blob/master/tests/test_api_v1.py)
 
@@ -113,7 +117,8 @@ El diseño separa la lógica de negocio principal (cuentas y operaciones) de ser
 ## 3. Descomposición y Arquitectura
 El sistema se compone de los siguientes elementos. Se marcan en **negrita** los desarrollados por esta parte del equipo:
 
-1.  **API Gateway:** Punto único de entrada. Protege la red interna y distribuye las peticiones.
+1.  **API Gateway:**
+    * Punto único de entrada. Protege la red interna y distribuye las peticiones.
 2.  **Microservicio Accounts (Python/Quart):**
     * Encargado de la persistencia y lógica de las cuentas.
     * Maneja la validación estricta de datos (Pydantic).
@@ -124,22 +129,41 @@ El sistema se compone de los siguientes elementos. Se marcan en **negrita** los 
 4.  **Microservicio Cards (Node.js/Express)** 
     * gestión del recurso tarjeta (CRUD), estados (active/frozen) y operaciones asociadas a tarjetas.
     * Recibe peticiones de *Accounts*, *Transfers* y *anti-fraud*
-5.  **Microservicio User Auth (NestJS/Express):**
+5. **Microservicio Transfers (Python/Quart):**
+    * Gestiona la funcionalidad de las transferencias.
+    * Maneja la validación estricta de datos (Pydantic).
+    * Realiza peticiones a una API Externa (TimeAPI) y al microservicio de cuentas para su funcionamiento base. (También llama a otros microservicios como el de autenticación o notificaciones).
+6.  **Microservicio User Auth (NestJS/Express):**
     * Gestiona altas/bajas/edición de usuarios (MongoDB).
     * Autentica con CAPTCHA, genera tokens JWT, valida/revoca tokens (lista negra) y notifica inicio de sesión.
-6.  **Microservicio Anti-Fraud (NestJS/Express):**
+7.  **Microservicio Anti-Fraud (NestJS/Express):**
     * Reglas de detección de riesgo sobre transacciones (importe, histórico, destinos).
     * Gestiona alertas de fraude (crear, listar, actualizar, eliminar) y bloquea cuentas vía Accounts con circuit breaker y timeout configurables.
-7.  **Frontend común (React/Vite):** interfaz unificada con rutas y navegación. Incluye páginas específicas para cada microservicio
+8.  **Microservicio Scheduled Payments (Python/Quart):**
+    * Realiza transferencias en momentos programados utilizando una sincronización por NTP y algunas limitaciones tipo Rate Limit para asegurar un correcto funcionamiento. 
+9.  **Microservicio Notifications (Python/Quart):** 
+    * Se encarga de informar a los usuarios sobre distintos eventos relevantes del sistema utilizando SendGrid enviando mails a los distintos usuarios. 
+10.  **Microservicio Bank Statements (Node.js/Express):**
+    * Gestión de estados de cuenta bancarios (CRUD).
+    * Generación automática mensual con cron job (día 1 de cada mes las 00:01).
+    * Generación de estado decuenta del mes actual consumiendo microservicio de transacciones.
+    * Visualización gráfica de balances.
+11.  **Frontend común (React/Vite):**
+    * Interfaz unificada con rutas y navegación. Incluye páginas específicas para cada microservicio
 
+## Diagrama del microservicio Accounts
+![Estructura Microservicio Cuentas](diagramas/Currencies%20st%20full.png)
 
-Diagrama del microservicio cards
+## Diagrama del microservicio Currencies
+![Estructura Microservicio Cuentas](diagramas/Accounts%20full.png)
+
+## Diagrama del microservicio cards
 
 ![Operaciones del modelo de cards](diagramas/diagrama-1.png)
 
 ![Operaciones del modelo de cards](diagramas/diagrama-2.png)
 
-## 4. Consmo
+## 4. Consumo
 
 ### 4.1. Customer Agreement (SLA e Interfaz)
 
@@ -168,9 +192,9 @@ Los planes definen límites y activación de capacidades. El backend se consider
 
 | Plan            |    Precio    | Límites y características funcionales                                                                         | Extrafuncionales / capacidad                    |
 |:----------------|:------------:|:--------------------------------------------------------------------------------------------------------------|:------------------------------------------------|
-| **Básico**      |  0 EUR/mes   | 1 tarjeta virtual y hasta 5 operaciones/mes. Sin pagos programados, notificaciones y servicio antifraude      | Límite de uso conservador y protección por plan |
-| **Estudiante**  | 4,99 EUR/mes | Hasta 5 tarjetas, hasta 20 operaciones/mes, notificaciones en tiempo real, servicio antifraude                | Mayor capacidad y prioridad estándar            |
-| **Profesional** | 9,99 EUR/mes | Tarjetas ilimitadas, operaciones ilimitadas, pagos programados, antifraude ampliado, notificaciones avanzadas | Capacidad alta, sin límites y mejor experiencia |
+| **Básico**      |  0 EUR/mes   | 1 tarjeta virtual y hasta 5 transacciones/mes. Con un único pago programados y Notificaciones sobre las transacciones en tiempo real      | Límite de uso conservador y protección por plan |
+| **Estudiante**  | 4,99 EUR/mes | 5 tarjetas virtuales y hasta 10 transacciones/mes. Con la posibilidad de realizar 10 pagos programados y Notificaciones sobre las transacciones, accesos y pagos programados en tiempo real                 | Mayor capacidad y prioridad estándar            |
+| **Profesional** | 9,99 EUR/mes | Tarjetas ilimitadas, operaciones ilimitadas, pagos programados ilimitados y notificaciones de transacciones, accesos, pagos programados e historial en tiempo real | Capacidad alta, sin límites y mejor experiencia |
 
 **Aplicación automática de límites**
 - Las políticas de plan se aplican en backend (y, si se decide, en el Gateway).
@@ -234,6 +258,17 @@ Desarrollado con Spring Boot.
 |:-------|:-----------|:-----------------------|:------------------------------------------------------------------------|
 | `GET`  | `/convert` | `from`, `to`, `amount` | Realiza la conversión de divisas utilizando el valor actual de mercado. |
 
+### Microservicio Transfers (Python / Quart)
+| Método   | Endpoint                | Descripción                                                                                               | Payload / Params         | Respuestas                                                 |
+| :------- | :---------------------- | :-------------------------------------------------------------------------------------------------------- | :----------------------- | :--------------------------------------------------------- |
+| `POST`   | `/`                     | **Crear Transacción:** Inicia una transferencia de fondos. Valida saldo y actualiza cuentas atómicamente. | JSON `TransactionCreate` | `202` (Éxito), `400` (Error Saldo), `503` (Error Accounts) |
+| `GET`    | `/<iban>`               | **Detalle:** Obtiene información completa de una transacción por su IBAN.                                 | IBAN en URL              | `200` (JSON `TransactionView`), `404`                      |
+| `GET`    | `/user/<iban>/sent`     | **Historial Enviadas:** Lista transacciones donde el usuario es remitente.                                | IBAN Usuario             | `200` (Array `TransactionView`)                            |
+| `GET`    | `/user/<iban>/received` | **Historial Recibidas:** Lista transacciones donde el usuario es receptor.                                | IBAN Usuario             | `200` (Array `TransactionView`)                            |
+| `PATCH`  | `/<iban>`               | **Revertir:** Deshace una transacción completada (devolución de fondos).                                  | IBAN en URL              | `200`, `400` (Si no es reversible)                         |
+| `DELETE` | `/<iban>`               | **Borrar:** Eliminación lógica de transacciones fallidas o pendientes.                                    | IBAN en URL              | `200`, `400` (Si ya completada)                            |
+| `PUT`    | `/<iban>/status`        | **Actualizar Estado:** Cambio manual de estado (Admin/Sistema).                                           | JSON `{"status": "..."}` | `200`                                                      |
+
 ### Microservicio User Auth (NestJS / Express)
 Autenticación centralizada y gestión de usuarios con persistencia en MongoDB. Incluye documentación Swagger en `/api`.
 
@@ -263,6 +298,22 @@ Servicio de análisis antifraude y gestión de alertas. Usa MongoDB para persist
 | `GET`    | `/users/{iban}/fraud-alerts` | Lista alertas asociadas a un IBAN concreto (origen).                                     | `200`, `404`, `400`       |
 | `PUT`    | `/fraud-alerts/{id}`         | Actualiza una alerta (estado: PENDING/REVIEWED/CONFIRMED/FALSE_POSITIVE, motivo).        | `200`, `404`, `400`       |
 | `DELETE` | `/fraud-alerts/{id}`         | Elimina una alerta de fraude.                                                            | `200`, `404`, `400`       |
+
+### Microservicio Bank Statements (Node.js / Express)
+Gestión de estados de cuenta bancarios con generación automática mensual y manual. Persistencia en MongoDB con Mongoose, documentación en swagger.
+
+**Prefijo:** `/v1/bankstatements`
+
+| Método   | Endpoint                       | Descripción                                                                      | Códigos de Respuesta      |
+|:---------|:-------------------------------|:---------------------------------------------------------------------------------|:--------------------------|
+| `GET`    | `/health`                      | Health check del servicio                                                        | `200`, `500`              |
+| `GET`    | `/by-iban/:iban`               | Lista todos los meses disponibles para un IBAN                                   | `200`, `400`, `403`, `404`|
+| `GET`    | `/by-iban?iban=...&month=...`  | Obtiene estado de cuenta específico por IBAN y mes (YYYY-MM)                     | `200`, `400`, `403`, `404`|
+| `GET`    | `/:id`                         | Obtiene estado de cuenta por ID de MongoDB                                       | `200`, `400`, `404`       |
+| `POST`   | `/generate`                    | Generación bulk/single de estados de cuenta                                      | `201`, `400`, `500`       |
+| `POST`   | `/generate-current`            | Genera estado de cuenta del mes actual consumiendo transacciones externas        | `201`, `200`, `400`, `500`|
+| `DELETE` | `/:id`                         | Elimina estado de cuenta por ID                                                  | `204`, `400`, `404`       |
+| `PUT`    | `/account/:iban/statements`    | Reemplaza todos los statements de una cuenta                                     | `200`, `400`, `404`       |
 
 ---
 
